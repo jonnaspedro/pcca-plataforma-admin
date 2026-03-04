@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCCA - Painel Administrativo</title>
+<link rel="icon" type="image/png" href="images/logo.png">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="admin-body">
+
+<header class="top-bar">
+    <div class="top-container">
+
+        <div class="brand">
+            <img src="images/logo.png" alt="Instituto Federal Pernambuco">
+            
+            <div class="brand-text">
+                <h1>Painel Administrativo</h1>
+                <span>Plataforma de Compartilhamento de Conhecimento</span>
+            </div>
+        </div>
+
+        <button class="btn-logout" onclick="logoutAdmin()">Sair</button>
+
+    </div>
+</header>
+
+<main class="admin-container">
+
+<section class="admin-login" id="loginArea">
+    <h2>Acesso Restrito</h2>
+    <input type="password" id="senhaAdmin" placeholder="Digite a senha">
+    <button onclick="loginAdmin()">Entrar</button>
+    <p id="erroLogin"></p>
+</section>
+
+<section id="painelAdmin" style="display:none;">
+
+    <div class="admin-dashboard">
+    <div class="admin-card">
+        <h3 id="totalPerguntas">0</h3>
+        <p>Total de Perguntas</p>
+    </div>
+
+    <div class="admin-card">
+        <h3 id="totalComentarios">0</h3>
+        <p>Total de Comentários</p>
+    </div>
+
+    <div class="admin-card">
+        <h3 id="totalUsuarios">0</h3>
+        <p>Total de Usuários</p>
+    </div>
+</div>
+
+    <!-- PERGUNTAS -->
+    <div class="admin-section">
+        <h2>Gerenciar Perguntas</h2>
+        <div id="listaPerguntasAdmin"></div>
+    </div>
+
+</section>
+
+</main>
+
+<script>
+const SENHA_ADMIN = "admin123";
+
+function loginAdmin() {
+    const senha = document.getElementById("senhaAdmin").value;
+    if (senha === SENHA_ADMIN) {
+        document.getElementById("loginArea").style.display = "none";
+        document.getElementById("painelAdmin").style.display = "block";
+        carregarAdmin();
+    } else {
+        document.getElementById("erroLogin").textContent = "Senha incorreta.";
+    }
+}
+
+function logoutAdmin(){
+    location.reload();
+}
+
+function carregarAdmin() {
+    let perguntas = JSON.parse(localStorage.getItem("perguntas")) || [];
+    let conteudos = JSON.parse(localStorage.getItem("conteudos")) || [];
+
+    let totalComentarios = 0;
+
+    perguntas.forEach(p => {
+        if(p.comentarios){
+            totalComentarios += p.comentarios.length;
+        }
+    });
+
+    document.getElementById("totalPerguntas").textContent = perguntas.length;
+    document.getElementById("totalComentarios").textContent = totalComentarios;
+    document.getElementById("totalConteudos").textContent = conteudos.length;
+
+    const lista = document.getElementById("listaPerguntasAdmin");
+    lista.innerHTML = "";
+
+    perguntas.forEach(p => {
+
+        let comentariosHTML = "";
+
+        if(p.comentarios && p.comentarios.length > 0){
+            comentariosHTML += `<div class="admin-comentarios">`;
+
+            p.comentarios.forEach(c => {
+                comentariosHTML += `
+                    <div class="admin-comentario-item">
+                        <span><strong>${c.autor}:</strong> ${c.texto}</span>
+                        <button onclick="removerComentarioAdmin(${p.id}, ${c.id})">Excluir</button>
+                    </div>
+                `;
+            });
+
+            comentariosHTML += `</div>`;
+        }
+
+        lista.innerHTML += `
+            <div class="admin-pergunta-card">
+                <div class="admin-pergunta-header">
+                    <div>
+                        <h3>${p.titulo}</h3>
+                        <small>${p.nome} | ${p.disciplina}</small>
+                    </div>
+                    <button class="btn-danger" onclick="removerPergunta(${p.id})">Excluir Pergunta</button>
+                </div>
+                <p>${p.texto}</p>
+                ${comentariosHTML}
+            </div>
+        `;
+    });
+}
+
+function removerPergunta(id){
+    if(!confirm("Deseja remover esta pergunta?")) return;
+
+    let perguntas = JSON.parse(localStorage.getItem("perguntas")) || [];
+    perguntas = perguntas.filter(p => p.id !== id);
+
+    localStorage.setItem("perguntas", JSON.stringify(perguntas));
+    carregarAdmin();
+}
+
+function removerComentarioAdmin(perguntaId, comentarioId){
+    if(!confirm("Deseja remover este comentário?")) return;
+
+    let perguntas = JSON.parse(localStorage.getItem("perguntas")) || [];
+    const pergunta = perguntas.find(p => p.id === perguntaId);
+
+    if(!pergunta || !pergunta.comentarios) return;
+
+    pergunta.comentarios = pergunta.comentarios.filter(c => c.id !== comentarioId);
+
+    localStorage.setItem("perguntas", JSON.stringify(perguntas));
+    carregarAdmin();
+}
+
+function atualizarDashboard() {
+    const perguntas = JSON.parse(localStorage.getItem("perguntas")) || [];
+    const comentarios = JSON.parse(localStorage.getItem("comentarios")) || [];
+
+    document.getElementById("totalPerguntas").innerText = perguntas.length;
+    document.getElementById("totalComentarios").innerText = comentarios.length;
+
+    const totalUsuarios = [...new Set(perguntas.map(p => p.usuario))];
+    document.getElementById("totalUsuarios").innerText = totalUsuarios.length;
+}
+
+atualizarDashboard();
+</script>
+
+</body>
+</html>
